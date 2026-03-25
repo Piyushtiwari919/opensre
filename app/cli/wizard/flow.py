@@ -91,7 +91,7 @@ def _integration_defaults(service: str) -> tuple[Mapping[str, object], Mapping[s
 
 
 def _step(title: str) -> None:
-    _console.print(f"\n[bold]{title}[/]")
+    _console.print(f"\n[bold]{title.lower()}[/]")
 
 
 def _choose(prompt: str, choices: list[Choice], *, default: str | None = None) -> str:
@@ -109,7 +109,7 @@ def _choose(prompt: str, choices: list[Choice], *, default: str | None = None) -
         choices=q_choices,
         default=default_label,
         style=_STYLE,
-        instruction="(Tab or arrows, Enter to confirm)",
+        instruction="(Tab, arrows, Enter)",
     ).ask()
 
     if result is None:
@@ -124,7 +124,7 @@ def _choose_many(prompt: str, choices: list[Choice]) -> list[str]:
         prompt,
         choices=q_choices,
         style=_STYLE,
-        instruction="(Space to toggle, Tab or arrows to move, Enter to confirm)",
+        instruction="(Space, Tab, Enter)",
     ).ask()
 
     if result is None:
@@ -147,7 +147,7 @@ def _prompt_value(
     allow_empty: bool = False,
 ) -> str:
     while True:
-        instruction = "(press Enter to keep saved value)" if default else None
+        instruction = "(Enter to keep current)" if default else None
         if secret:
             result = questionary.password(
                 label,
@@ -173,28 +173,11 @@ def _prompt_value(
             return default
         if allow_empty:
             return ""
-        _console.print("[red]  This value is required.[/]")
+        _console.print("[red]Required.[/]")
 
 
 def _parse_csv_values(raw_value: str) -> list[str]:
     return [part.strip() for part in raw_value.split(",") if part.strip()]
-
-
-def _prompt_api_key(provider: ProviderOption) -> str:
-    while True:
-        result = questionary.password(
-            f"{provider.label} API key ({provider.api_key_env})",
-            style=_STYLE,
-            instruction=None,
-        ).ask()
-
-        if result is None:
-            raise KeyboardInterrupt
-
-        value = str(result).strip()
-        if value:
-            return value
-        _console.print("[red]API key is required.[/]")
 
 
 def _collect_validated_api_key(provider: ProviderOption, model: str, *, default_api_key: str = "") -> str:
@@ -207,35 +190,15 @@ def _collect_validated_api_key(provider: ProviderOption, model: str, *, default_
         with _console.status(f"Validating {provider.label} API key...", spinner="dots"):
             result = validate_provider_credentials(provider=provider, api_key=api_key, model=model)
         if result.ok:
-            _console.print(f"[green]{result.detail}[/]")
+            _console.print("[green]Connected.[/]")
             if result.sample_response:
+                _console.print(f"[dim]{result.detail}[/]")
                 _console.print(f"[dim]Sample: {result.sample_response}[/]")
+            else:
+                _console.print(f"[dim]{result.detail}[/]")
             return api_key
         _console.print(f"[red]Validation failed: {result.detail}[/]")
-        _console.print("[dim]Press Enter to reuse the saved key, or paste a new one.[/]")
-
-
-def _select_provider() -> ProviderOption:
-    provider_value = _choose(
-        "Select your LLM provider:",
-        [
-            Choice(value=provider.value, label=provider.label, group=provider.group)
-            for provider in SUPPORTED_PROVIDERS
-        ],
-        default=SUPPORTED_PROVIDERS[0].value,
-    )
-    return PROVIDER_BY_VALUE[provider_value]
-
-
-def _select_model(provider: ProviderOption) -> str:
-    return _choose(
-        f"Select the default {provider.label} model:",
-        [
-            Choice(value=model.value, label=model.label)
-            for model in provider.models
-        ],
-        default=provider.default_model,
-    )
+        _console.print("[dim]Enter keeps the current key. Paste a new one to replace it.[/]")
 
 
 def _display_probe(result: ProbeResult) -> None:
@@ -244,7 +207,7 @@ def _display_probe(result: ProbeResult) -> None:
 
 
 def _select_target_for_advanced(local_probe: ProbeResult, remote_probe: ProbeResult) -> str | None:
-    _console.print("\n[dim]Reachability check[/]")
+    _console.print("\n[dim]reachability[/]")
     _display_probe(local_probe)
     _display_probe(remote_probe)
 
@@ -259,16 +222,16 @@ def _select_target_for_advanced(local_probe: ProbeResult, remote_probe: ProbeRes
     if target == "local":
         return "local"
 
-    _console.print("\n[yellow]Remote configuration is not available yet.[/]")
-    if _confirm("Continue with local configuration instead?", default=True):
+    _console.print("\n[yellow]Remote setup is not available yet.[/]")
+    if _confirm("Use local setup instead?", default=True):
         return "local"
-    _console.print("[yellow]Onboarding cancelled.[/]")
+    _console.print("[yellow]Setup cancelled.[/]")
     return None
 
 
 def _render_header() -> None:
-    _console.print("[bold]OpenSRE setup[/]")
-    _console.print("[dim]Configure your local model and optional integrations.[/]")
+    _console.print("[bold]OpenSRE[/]")
+    _console.print("[dim]Set up local AI and integrations.[/]")
 
 
 def _render_saved_summary(
@@ -280,15 +243,19 @@ def _render_saved_summary(
     configured_integrations: list[str],
 ) -> None:
     integrations = ", ".join(configured_integrations) or "none"
-    _console.print("\n[green]Saved local configuration.[/]")
-    _console.print(f"[dim]{provider_label} / {model} / integrations: {integrations}[/]")
-    _console.print(f"[dim]Config: {saved_path}[/]")
-    _console.print(f"[dim]Env: {env_path}[/]")
+    _console.print("\n[green]Done.[/]")
+    _console.print(f"[dim]provider  {provider_label}[/]")
+    _console.print(f"[dim]model     {model}[/]")
+    _console.print(f"[dim]services  {integrations}[/]")
+    _console.print(f"[dim]config    {saved_path}[/]")
+    _console.print(f"[dim]env       {env_path}[/]")
 
 
 def _render_integration_result(service_label: str, result: IntegrationHealthResult) -> None:
     color = "green" if result.ok else "red"
-    _console.print(f"[{color}]{service_label}: {result.detail}[/]")
+    prefix = "Connected" if result.ok else "Failed"
+    _console.print(f"[{color}]{service_label} · {prefix}[/]")
+    _console.print(f"[dim]{result.detail}[/]")
 
 
 def _configure_grafana() -> tuple[str, str]:
@@ -315,7 +282,7 @@ def _configure_grafana() -> tuple[str, str]:
                 }
             )
             return "Grafana", str(env_path)
-        _console.print("[dim]  Re-enter the Grafana values to try again, or press Ctrl+C to cancel.[/]")
+        _console.print("[dim]Try again or press Ctrl+C to cancel.[/]")
 
 
 def _configure_datadog() -> tuple[str, str]:
@@ -350,7 +317,7 @@ def _configure_datadog() -> tuple[str, str]:
                 }
             )
             return "Datadog", str(env_path)
-        _console.print("[dim]  Re-enter the Datadog values to try again, or press Ctrl+C to cancel.[/]")
+        _console.print("[dim]Try again or press Ctrl+C to cancel.[/]")
 
 
 def _configure_slack() -> tuple[str, str]:
@@ -367,7 +334,7 @@ def _configure_slack() -> tuple[str, str]:
         if result.ok:
             env_path = sync_env_values({"SLACK_WEBHOOK_URL": webhook_url})
             return "Slack", str(env_path)
-        _console.print("[dim]  Re-enter the Slack webhook to try again, or press Ctrl+C to cancel.[/]")
+        _console.print("[dim]Try again or press Ctrl+C to cancel.[/]")
 
 
 def _configure_aws() -> tuple[str, str]:
@@ -462,7 +429,7 @@ def _configure_aws() -> tuple[str, str]:
                 )
                 return "AWS", str(env_path)
 
-        _console.print("[dim]  Re-enter the AWS values to try again, or press Ctrl+C to cancel.[/]")
+        _console.print("[dim]Try again or press Ctrl+C to cancel.[/]")
 
 
 def _configure_github_mcp() -> tuple[str, str]:
@@ -548,16 +515,16 @@ def _configure_github_mcp() -> tuple[str, str]:
                 "GITHUB_MCP_TOOLSETS": ",".join(toolsets),
             })
             return "GitHub MCP", str(env_path)
-        _console.print("[dim]  Re-enter the GitHub MCP values to try again, or press Ctrl+C to cancel.[/]")
+        _console.print("[dim]Try again or press Ctrl+C to cancel.[/]")
 
 
 def _configure_sentry() -> tuple[str, str]:
     _, credentials = _integration_defaults("sentry")
     guidance = get_sentry_auth_recommendations()
     _console.print(
-        "[dim]Recommended: use a "
+        "[dim]Recommended: "
         f"{guidance['recommended_token_type']} from {guidance['where_to_create']}. "
-        f"Use {guidance['fallback_token_type']} only when you need broader scopes.[/]"
+        f"{guidance['fallback_token_type']} only if you need broader scopes.[/]"
     )
 
     while True:
@@ -603,19 +570,19 @@ def _configure_sentry() -> tuple[str, str]:
                 "SENTRY_AUTH_TOKEN": auth_token,
             })
             return "Sentry", str(env_path)
-        _console.print("[dim]  Re-enter the Sentry values to try again, or press Ctrl+C to cancel.[/]")
+        _console.print("[dim]Try again or press Ctrl+C to cancel.[/]")
 
 
 def _configure_selected_integrations() -> tuple[list[str], str | None]:
     selected = _choose_many(
-        "Select optional integrations to configure now:",
+        "Optional integrations:",
         [
             Choice(value="grafana", label="Grafana"),
             Choice(value="datadog", label="Datadog"),
             Choice(value="slack", label="Slack"),
             Choice(value="aws", label="AWS"),
-             Choice(value="github", label="GitHub MCP"),
-             Choice(value="sentry", label="Sentry"),
+            Choice(value="github", label="GitHub MCP"),
+            Choice(value="sentry", label="Sentry"),
         ],
     )
     if not selected:
@@ -629,12 +596,12 @@ def _configure_selected_integrations() -> tuple[list[str], str | None]:
         "datadog": _configure_datadog,
         "slack": _configure_slack,
         "aws": _configure_aws,
-         "github": _configure_github_mcp,
-         "sentry": _configure_sentry,
+        "github": _configure_github_mcp,
+        "sentry": _configure_sentry,
     }
 
     for index, service in enumerate(selected, start=1):
-        _step(f"Optional integration {index} of {len(selected)}: {service.title()}")
+        _step(f"service {index}/{len(selected)} · {service}")
         label, env_path = handlers[service]()
         configured.append(label)
         last_env_path = env_path
@@ -645,25 +612,22 @@ def _configure_selected_integrations() -> tuple[list[str], str | None]:
 def _render_demo_response(demo_response: dict) -> None:
     topics = ", ".join(demo_response.get("topics", [])) or "none"
     guidance = demo_response.get("guidance") or []
-    summary = [
-        f"success: {demo_response.get('success')}",
-        f"topics: {topics}",
-    ]
+    summary = [f"demo      {'ready' if demo_response.get('success') else 'failed'}", f"topics    {topics}"]
     if guidance:
         first = guidance[0]
-        summary.append(f"sample topic: {first.get('topic', 'unknown')}")
+        summary.append(f"sample    {first.get('topic', 'unknown')}")
         content = str(first.get("content", "")).strip().splitlines()
         if content:
-            summary.append(f"preview: {content[0][:140]}")
-    _console.print("\n[bold]Demo[/]")
+            summary.append(f"preview   {content[0][:140]}")
+    _console.print("\n[bold]summary[/]")
     for line in summary:
         _console.print(f"[dim]{line}[/]")
 
 
 def _render_next_steps() -> None:
-    _console.print("\n[bold]Next steps[/]")
-    _console.print("[dim]opensre onboard[/] to update settings later.")
-    _console.print("[dim]make run -- --input path/to/alert.json[/] to exercise the CLI.")
+    _console.print("\n[bold]next[/]")
+    _console.print("[dim]opensre onboard[/]")
+    _console.print("[dim]make run -- --input path/to/alert.json[/]")
 
 
 def run_wizard(_argv: list[str] | None = None) -> int:
@@ -674,11 +638,11 @@ def run_wizard(_argv: list[str] | None = None) -> int:
     if default_provider_value not in PROVIDER_BY_VALUE:
         default_provider_value = SUPPORTED_PROVIDERS[0].value
 
-    _step("Mode")
+    _step("mode")
     wizard_mode = _choose(
-        "Choose setup mode:",
+        "Setup mode",
         [
-            Choice(value="quickstart", label="QuickStart (always local)"),
+            Choice(value="quickstart", label="Quickstart"),
             Choice(value="advanced", label="Advanced"),
         ],
         default=defaults["wizard_mode"],
@@ -704,10 +668,10 @@ def run_wizard(_argv: list[str] | None = None) -> int:
         print("Only local configuration is supported today.", file=sys.stderr)
         return 1
 
-    _step("Provider")
+    _step("provider")
     provider = PROVIDER_BY_VALUE[
         _choose(
-            "Select your LLM provider:",
+            "Provider",
             [
                 Choice(value=provider.value, label=provider.label, group=provider.group)
                 for provider in SUPPORTED_PROVIDERS
@@ -715,20 +679,20 @@ def run_wizard(_argv: list[str] | None = None) -> int:
             default=default_provider_value,
         )
     ]
-    _step("Model")
+    _step("model")
     default_model = defaults["model"]
     if default_model not in {option.value for option in provider.models}:
         default_model = provider.default_model
     model = _choose(
-        f"Select the default {provider.label} model:",
+        "Model",
         [Choice(value=option.value, label=option.label) for option in provider.models],
         default=default_model,
     )
-    _step("API key")
+    _step("api key")
     try:
         api_key = _collect_validated_api_key(provider, model, default_api_key=defaults["api_key"])
     except KeyboardInterrupt:
-        _console.print("\n[yellow]Onboarding cancelled.[/]")
+        _console.print("\n[yellow]Setup cancelled.[/]")
         return 1
 
     probes = {
@@ -746,11 +710,11 @@ def run_wizard(_argv: list[str] | None = None) -> int:
     )
     env_path = sync_provider_env(provider=provider, api_key=api_key, model=model)
 
-    _step("Optional integrations")
+    _step("integrations")
     try:
         configured_integrations, integration_env_path = _configure_selected_integrations()
     except KeyboardInterrupt:
-        _console.print("\n[yellow]Optional integration setup cancelled. LLM configuration was kept.[/]")
+        _console.print("\n[yellow]Integration setup cancelled. AI config was kept.[/]")
         configured_integrations = []
         integration_env_path = None
 

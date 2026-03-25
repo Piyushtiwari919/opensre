@@ -68,8 +68,8 @@ def test_run_wizard_advanced_remote_falls_back_to_local(monkeypatch, tmp_path, c
 
     output = capsys.readouterr().out
     assert "Sample: OpenSRE ready" in output
-    assert "Demo" in output
-    assert "Saved local configuration." in output
+    assert "summary" in output
+    assert "Done." in output
 
 
 def test_run_wizard_retries_invalid_api_key(monkeypatch, tmp_path, capsys) -> None:
@@ -120,7 +120,7 @@ def test_run_wizard_retries_invalid_api_key(monkeypatch, tmp_path, capsys) -> No
     assert exit_code == 0
     output = capsys.readouterr().out
     assert "Validation failed: bad key" in output
-    assert "Press Enter to reuse the saved key, or paste a new one." in output
+    assert "Enter keeps the current key. Paste a new one to replace it." in output
     assert "validated" in output
 
 

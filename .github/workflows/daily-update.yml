@@ -5,6 +5,16 @@ on:
     - cron: "59 22 * * *"
     - cron: "59 23 * * *"
   workflow_dispatch:
+    inputs:
+      london_date:
+        description: "Optional London date to generate (YYYY-MM-DD). Defaults to today in Europe/London."
+        required: false
+        type: string
+      post_to_slack:
+        description: "Post the generated update to Slack."
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -52,6 +62,22 @@ jobs:
         with:
           python-version: "3.13"
           cache: "pip"
+
+      - name: Resolve workflow inputs
+        if: steps.gate.outputs.should_run == 'true'
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ inputs.london_date }}" ]; then
+              echo "DAILY_UPDATE_DATE=${{ inputs.london_date }}" >> "$GITHUB_ENV"
+            fi
+
+            if [ "${{ inputs.post_to_slack }}" = "true" ]; then
+              echo "DAILY_UPDATE_POST_TO_SLACK=1" >> "$GITHUB_ENV"
+            else
+              echo "DAILY_UPDATE_POST_TO_SLACK=0" >> "$GITHUB_ENV"
+            fi
+          fi
 
       - name: Install dependencies
         if: steps.gate.outputs.should_run == 'true'

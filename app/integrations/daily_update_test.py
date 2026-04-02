@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime
 from app.integrations.daily_update import (
     Contributor,
     PullRequestSummary,
+    _github_repo_api_url,
     build_daily_update,
     build_fallback_highlights,
     build_slack_payload,
@@ -58,6 +59,12 @@ def test_format_name_list_uses_oxford_comma() -> None:
     rendered = format_name_list(["vaibhav upreti", "paul", "Rohit Rajan"])
 
     assert rendered == "vaibhav upreti, paul, and Rohit Rajan"
+
+
+def test_github_repo_api_url_keeps_owner_repo_segments() -> None:
+    url = _github_repo_api_url("Tracer-Cloud/opensre", "pulls?state=closed")
+
+    assert url == "https://api.github.com/repos/Tracer-Cloud/opensre/pulls?state=closed"
 
 
 def test_build_fallback_highlights_uses_titles() -> None:

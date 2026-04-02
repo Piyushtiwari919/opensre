@@ -184,8 +184,13 @@ def _paginate_github(url: str, token: str) -> list[Any]:
 
 
 def _github_repo_api_url(repository: str, suffix: str) -> str:
-    quoted_repository = parse.quote(repository, safe="")
-    return f"{GITHUB_API_BASE_URL}/repos/{quoted_repository}/{suffix.lstrip('/')}"
+    owner, separator, repo = repository.partition("/")
+    if not owner or separator != "/" or not repo:
+        raise ValueError(f"Expected GITHUB_REPOSITORY in owner/repo format, got {repository!r}")
+
+    quoted_owner = parse.quote(owner, safe="")
+    quoted_repo = parse.quote(repo, safe="")
+    return f"{GITHUB_API_BASE_URL}/repos/{quoted_owner}/{quoted_repo}/{suffix.lstrip('/')}"
 
 
 def _user_is_bot(user: dict[str, Any] | None) -> bool:

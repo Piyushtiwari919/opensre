@@ -93,6 +93,8 @@ Unlike closed SRE platforms, Tracer is **fully open source and self-hostable**. 
 
 > Whether you're an SRE triaging a P0, a platform engineer building internal tooling, a developer who just got paged, or an EM trying to reduce MTTR - Tracer works for your whole team.
 
+**Built in the open. Trusted in production.**
+
 ## How is Open SRE different?
 
 [SWE-smith](https://arxiv.org/abs/2504.21798) gave coding agents scalable training data and clear feedback. Production incident response still has no equivalent. Distributed failures are slower, noisier, and harder to simulate and evaluate than local code tasks, which is why AI SRE, and AI for production debugging more broadly, remains unsolved.
@@ -107,7 +109,6 @@ We do that by:
 
 Our goal is to scale this into thousands of realistic infrastructure failure scenarios and become the benchmark and training ground for AI SRE. You can contribute by adding new failure modes to existing cloud assets or building new suites for novel assets. Right now, our highest-priority areas are database asset models and new Kubernetes failure modes.
 
-**Built in the open. Trusted in production.**
 
 ---
 

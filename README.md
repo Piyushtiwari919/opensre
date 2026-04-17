@@ -151,7 +151,11 @@ opensre investigate -i tests/e2e/kubernetes/fixtures/datadog_k8s_alert.json
 
 ## How OpenSRE Works
 
-<img width="4096" height="2187" alt="tracer-how-it-works-illustration" src="https://github.com/user-attachments/assets/8b50fe5c-470c-4982-866f-4f90c3e251d1" />
+<img
+  alt="tracer-how-it-works-illustration"
+  src="https://github.com/user-attachments/assets/8b50fe5c-470c-4982-866f-4f90c3e251d1"
+  style="width: 100%; height: auto;"
+/>
 
 ### Investigation Workflow
 

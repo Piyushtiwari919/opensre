@@ -133,7 +133,7 @@ opensre remote ops --provider railway --project <project> --service <service> lo
 opensre remote ops --provider railway --project <project> --service <service> restart --yes
 ```
 
-OpenSRE saves your last used `provider`/`project`/`service`, so you can run:
+OpenSRE saves your last used `provider`, so you can run:
 
 ```bash
 opensre remote ops status
